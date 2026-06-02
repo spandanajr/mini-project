@@ -11,7 +11,7 @@ char canvas[ROWS][COLS];
 typedef struct
 {
     int id;
-    int type;       // 1-Line, 2-Rectangle, 3-Triangle, 4-Circle
+    int type;       
 
     int x1, y1;
     int x2, y2;
@@ -24,7 +24,7 @@ typedef struct
 Object objects[MAX_OBJECTS];
 int objectCount = 0;
 
-/* ---------- Canvas Functions ---------- */
+
 
 void initCanvas()
 {
@@ -63,7 +63,7 @@ void plot(int x, int y)
     }
 }
 
-/* ---------- Drawing Functions ---------- */
+
 
 void drawLine(int x1, int y1, int x2, int y2)
 {
@@ -147,7 +147,7 @@ void drawCircle(int xc, int yc, int r)
     }
 }
 
-/* ---------- Redraw Canvas ---------- */
+
 
 void redraw()
 {
@@ -184,7 +184,7 @@ void redraw()
     }
 }
 
-/* ---------- Add Object ---------- */
+
 
 void addObject()
 {
@@ -246,7 +246,7 @@ void addObject()
     printf("Object Added Successfully.\n");
 }
 
-/* ---------- Delete Object ---------- */
+
 
 void deleteObject()
 {
@@ -277,7 +277,7 @@ void deleteObject()
     printf("Object Not Found.\n");
 }
 
-/* ---------- Modify Object ---------- */
+
 
 void modifyObject()
 {
@@ -343,7 +343,7 @@ void modifyObject()
     printf("Object Not Found.\n");
 }
 
-/* ---------- List Objects ---------- */
+
 
 void listObjects()
 {
@@ -379,7 +379,7 @@ void listObjects()
         printf("No Objects Present.\n");
 }
 
-/* ---------- Main ---------- */
+
 
 int main()
 {
