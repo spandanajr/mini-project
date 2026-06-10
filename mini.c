@@ -3,36 +3,44 @@
 #include <math.h>
 
 #define ROWS 30
-#define COLS 60
-#define MAX_OBJECTS 100
+#define COLS 70
+#define MAX_SHAPES 100
+
+#define LINE 1
+#define RECTANGLE 2
+#define TRIANGLE 3
+#define CIRCLE 4
 
 char canvas[ROWS][COLS];
 
 typedef struct
 {
     int id;
-    int type;       
+    int type;
+    int active;
 
     int x1, y1;
     int x2, y2;
     int x3, y3;
 
+    int width;
+    int height;
     int radius;
 
-} Object;
+} Shape;
 
-Object objects[MAX_OBJECTS];
-int objectCount = 0;
+Shape shapes[MAX_SHAPES];
 
+int shapeCount = 0;
+int nextID = 1;
 
+/* ---------------- Canvas Functions ---------------- */
 
-void initCanvas()
+void clearCanvas()
 {
-    int i, j;
-
-    for(i = 0; i < ROWS; i++)
+    for(int i = 0; i < ROWS; i++)
     {
-        for(j = 0; j < COLS; j++)
+        for(int j = 0; j < COLS; j++)
         {
             canvas[i][j] = '_';
         }
@@ -41,13 +49,11 @@ void initCanvas()
 
 void displayCanvas()
 {
-    int i, j;
-
     printf("\n");
 
-    for(i = 0; i < ROWS; i++)
+    for(int i = 0; i < ROWS; i++)
     {
-        for(j = 0; j < COLS; j++)
+        for(int j = 0; j < COLS; j++)
         {
             printf("%c ", canvas[i][j]);
         }
@@ -55,17 +61,17 @@ void displayCanvas()
     }
 }
 
-void plot(int x, int y)
+void setPixel(int x, int y, char ch)
 {
     if(x >= 0 && x < ROWS && y >= 0 && y < COLS)
     {
-        canvas[x][y] = '*';
+        canvas[x][y] = ch;
     }
 }
 
+/* ---------------- Drawing Algorithms ---------------- */
 
-
-void drawLine(int x1, int y1, int x2, int y2)
+void drawLineAlgo(int x1, int y1, int x2, int y2)
 {
     int dx = abs(x2 - x1);
     int dy = abs(y2 - y1);
@@ -77,7 +83,7 @@ void drawLine(int x1, int y1, int x2, int y2)
 
     while(1)
     {
-        plot(x1, y1);
+        setPixel(x1, y1, '*');
 
         if(x1 == x2 && y1 == y2)
             break;
@@ -98,335 +104,372 @@ void drawLine(int x1, int y1, int x2, int y2)
     }
 }
 
-void drawRectangle(int x1, int y1, int x2, int y2)
+void drawRectangleAlgo(int x, int y, int width, int height)
 {
-    drawLine(x1, y1, x1, y2);
-    drawLine(x1, y2, x2, y2);
-    drawLine(x2, y2, x2, y1);
-    drawLine(x2, y1, x1, y1);
+    for(int i = y; i < y + width; i++)
+    {
+        setPixel(x, i, '*');
+        setPixel(x + height - 1, i, '*');
+    }
+
+    for(int i = x; i < x + height; i++)
+    {
+        setPixel(i, y, '*');
+        setPixel(i, y + width - 1, '*');
+    }
 }
 
-void drawTriangle(int x1, int y1,
-                  int x2, int y2,
-                  int x3, int y3)
+void drawTriangleAlgo(int x1,int y1,int x2,int y2,int x3,int y3)
 {
-    drawLine(x1, y1, x2, y2);
-    drawLine(x2, y2, x3, y3);
-    drawLine(x3, y3, x1, y1);
+    drawLineAlgo(x1,y1,x2,y2);
+    drawLineAlgo(x2,y2,x3,y3);
+    drawLineAlgo(x3,y3,x1,y1);
 }
 
-void drawCircle(int xc, int yc, int r)
+void drawCircleAlgo(int xc,int yc,int r)
 {
     int x = 0;
     int y = r;
     int d = 3 - 2 * r;
 
-    while(x <= y)
+    while(y >= x)
     {
-        plot(xc + x, yc + y);
-        plot(xc - x, yc + y);
-        plot(xc + x, yc - y);
-        plot(xc - x, yc - y);
+        setPixel(xc+x,yc+y,'*');
+        setPixel(xc-x,yc+y,'*');
+        setPixel(xc+x,yc-y,'*');
+        setPixel(xc-x,yc-y,'*');
 
-        plot(xc + y, yc + x);
-        plot(xc - y, yc + x);
-        plot(xc + y, yc - x);
-        plot(xc - y, yc - x);
+        setPixel(xc+y,yc+x,'*');
+        setPixel(xc-y,yc+x,'*');
+        setPixel(xc+y,yc-x,'*');
+        setPixel(xc-y,yc-x,'*');
 
-        if(d < 0)
+        x++;
+
+        if(d > 0)
         {
-            d = d + 4 * x + 6;
+            y--;
+            d += 4*(x-y)+10;
         }
         else
         {
-            d = d + 4 * (x - y) + 10;
-            y--;
-        }
-
-        x++;
-    }
-}
-
-
-
-void redraw()
-{
-    int i;
-
-    initCanvas();
-
-    for(i = 0; i < objectCount; i++)
-    {
-        switch(objects[i].type)
-        {
-            case 1:
-                drawLine(objects[i].x1, objects[i].y1,
-                         objects[i].x2, objects[i].y2);
-                break;
-
-            case 2:
-                drawRectangle(objects[i].x1, objects[i].y1,
-                              objects[i].x2, objects[i].y2);
-                break;
-
-            case 3:
-                drawTriangle(objects[i].x1, objects[i].y1,
-                             objects[i].x2, objects[i].y2,
-                             objects[i].x3, objects[i].y3);
-                break;
-
-            case 4:
-                drawCircle(objects[i].x1,
-                           objects[i].y1,
-                           objects[i].radius);
-                break;
+            d += 4*x+6;
         }
     }
 }
 
+/* ---------------- Rendering ---------------- */
 
-
-void addObject()
+void renderScene()
 {
-    Object obj;
+    clearCanvas();
 
-    printf("\nChoose Object Type\n");
-    printf("1. Line\n");
-    printf("2. Rectangle\n");
-    printf("3. Triangle\n");
-    printf("4. Circle\n");
-
-    printf("Enter choice: ");
-    scanf("%d", &obj.type);
-
-    obj.id = objectCount + 1;
-
-    switch(obj.type)
+    for(int i = 0; i < shapeCount; i++)
     {
-        case 1:
-            printf("Enter x1 y1 x2 y2: ");
-            scanf("%d%d%d%d",
-                  &obj.x1, &obj.y1,
-                  &obj.x2, &obj.y2);
-            break;
+        if(!shapes[i].active)
+            continue;
 
-        case 2:
-            printf("Enter top-left and bottom-right coordinates:\n");
-            printf("x1 y1 x2 y2: ");
-            scanf("%d%d%d%d",
-                  &obj.x1, &obj.y1,
-                  &obj.x2, &obj.y2);
-            break;
+        switch(shapes[i].type)
+        {
+            case LINE:
+                drawLineAlgo(
+                    shapes[i].x1,
+                    shapes[i].y1,
+                    shapes[i].x2,
+                    shapes[i].y2
+                );
+                break;
 
-        case 3:
-            printf("Enter x1 y1 x2 y2 x3 y3: ");
-            scanf("%d%d%d%d%d%d",
-                  &obj.x1, &obj.y1,
-                  &obj.x2, &obj.y2,
-                  &obj.x3, &obj.y3);
-            break;
+            case RECTANGLE:
+                drawRectangleAlgo(
+                    shapes[i].x1,
+                    shapes[i].y1,
+                    shapes[i].width,
+                    shapes[i].height
+                );
+                break;
 
-        case 4:
-            printf("Enter centerX centerY radius: ");
-            scanf("%d%d%d",
-                  &obj.x1,
-                  &obj.y1,
-                  &obj.radius);
-            break;
+            case TRIANGLE:
+                drawTriangleAlgo(
+                    shapes[i].x1,
+                    shapes[i].y1,
+                    shapes[i].x2,
+                    shapes[i].y2,
+                    shapes[i].x3,
+                    shapes[i].y3
+                );
+                break;
 
-        default:
-            printf("Invalid Type!\n");
-            return;
+            case CIRCLE:
+                drawCircleAlgo(
+                    shapes[i].x1,
+                    shapes[i].y1,
+                    shapes[i].radius
+                );
+                break;
+        }
     }
-
-    objects[objectCount++] = obj;
-
-    redraw();
-
-    printf("Object Added Successfully.\n");
 }
 
+/* ---------------- Add Functions ---------------- */
 
-
-void deleteObject()
+void addLine()
 {
-    int id;
-    int i, j;
+    Shape s;
 
-    printf("Enter Object ID to delete: ");
-    scanf("%d", &id);
+    s.id = nextID++;
+    s.type = LINE;
+    s.active = 1;
 
-    for(i = 0; i < objectCount; i++)
+    printf("Enter x1 y1 x2 y2: ");
+    scanf("%d%d%d%d",&s.x1,&s.y1,&s.x2,&s.y2);
+
+    shapes[shapeCount++] = s;
+
+    printf("Line Added. ID = %d\n",s.id);
+}
+
+void addRectangle()
+{
+    Shape s;
+
+    s.id = nextID++;
+    s.type = RECTANGLE;
+    s.active = 1;
+
+    printf("Enter x y width height: ");
+    scanf("%d%d%d%d",
+          &s.x1,
+          &s.y1,
+          &s.width,
+          &s.height);
+
+    shapes[shapeCount++] = s;
+
+    printf("Rectangle Added. ID = %d\n",s.id);
+}
+
+void addTriangle()
+{
+    Shape s;
+
+    s.id = nextID++;
+    s.type = TRIANGLE;
+    s.active = 1;
+
+    printf("Enter x1 y1 x2 y2 x3 y3: ");
+
+    scanf("%d%d%d%d%d%d",
+          &s.x1,&s.y1,
+          &s.x2,&s.y2,
+          &s.x3,&s.y3);
+
+    shapes[shapeCount++] = s;
+
+    printf("Triangle Added. ID = %d\n",s.id);
+}
+
+void addCircle()
+{
+    Shape s;
+
+    s.id = nextID++;
+    s.type = CIRCLE;
+    s.active = 1;
+
+    printf("Enter centerX centerY radius: ");
+    scanf("%d%d%d",
+          &s.x1,
+          &s.y1,
+          &s.radius);
+
+    shapes[shapeCount++] = s;
+
+    printf("Circle Added. ID = %d\n",s.id);
+}
+
+/* ---------------- List Shapes ---------------- */
+
+void listShapes()
+{
+    printf("\n----- OBJECT LIST -----\n");
+
+    for(int i = 0; i < shapeCount; i++)
     {
-        if(objects[i].id == id)
+        if(shapes[i].active)
         {
-            for(j = i; j < objectCount - 1; j++)
+            printf("ID: %d  ",shapes[i].id);
+
+            switch(shapes[i].type)
             {
-                objects[j] = objects[j + 1];
+                case LINE:
+                    printf("LINE\n");
+                    break;
+
+                case RECTANGLE:
+                    printf("RECTANGLE\n");
+                    break;
+
+                case TRIANGLE:
+                    printf("TRIANGLE\n");
+                    break;
+
+                case CIRCLE:
+                    printf("CIRCLE\n");
+                    break;
             }
+        }
+    }
+}
 
-            objectCount--;
+/* ---------------- Delete Shape ---------------- */
 
-            redraw();
+void deleteShape()
+{
+    int id;
 
-            printf("Object Deleted Successfully.\n");
+    printf("Enter Shape ID: ");
+    scanf("%d",&id);
+
+    for(int i = 0; i < shapeCount; i++)
+    {
+        if(shapes[i].id == id && shapes[i].active)
+        {
+            shapes[i].active = 0;
+
+            printf("Deleted Successfully.\n");
             return;
         }
     }
 
-    printf("Object Not Found.\n");
+    printf("Shape Not Found.\n");
 }
 
+/* ---------------- Modify Shape ---------------- */
 
-
-void modifyObject()
+void modifyShape()
 {
     int id;
-    int i;
 
-    printf("Enter Object ID to modify: ");
-    scanf("%d", &id);
+    printf("Enter Shape ID: ");
+    scanf("%d",&id);
 
-    for(i = 0; i < objectCount; i++)
+    for(int i = 0; i < shapeCount; i++)
     {
-        if(objects[i].id == id)
+        if(shapes[i].id == id && shapes[i].active)
         {
-            printf("Enter New Values:\n");
-
-            switch(objects[i].type)
+            switch(shapes[i].type)
             {
-                case 1:
-                    printf("x1 y1 x2 y2: ");
+                case LINE:
+                    printf("New x1 y1 x2 y2: ");
                     scanf("%d%d%d%d",
-                          &objects[i].x1,
-                          &objects[i].y1,
-                          &objects[i].x2,
-                          &objects[i].y2);
+                          &shapes[i].x1,
+                          &shapes[i].y1,
+                          &shapes[i].x2,
+                          &shapes[i].y2);
                     break;
 
-                case 2:
-                    printf("x1 y1 x2 y2: ");
+                case RECTANGLE:
+                    printf("New x y width height: ");
                     scanf("%d%d%d%d",
-                          &objects[i].x1,
-                          &objects[i].y1,
-                          &objects[i].x2,
-                          &objects[i].y2);
+                          &shapes[i].x1,
+                          &shapes[i].y1,
+                          &shapes[i].width,
+                          &shapes[i].height);
                     break;
 
-                case 3:
-                    printf("x1 y1 x2 y2 x3 y3: ");
+                case TRIANGLE:
+                    printf("New x1 y1 x2 y2 x3 y3: ");
                     scanf("%d%d%d%d%d%d",
-                          &objects[i].x1,
-                          &objects[i].y1,
-                          &objects[i].x2,
-                          &objects[i].y2,
-                          &objects[i].x3,
-                          &objects[i].y3);
+                          &shapes[i].x1,
+                          &shapes[i].y1,
+                          &shapes[i].x2,
+                          &shapes[i].y2,
+                          &shapes[i].x3,
+                          &shapes[i].y3);
                     break;
 
-                case 4:
-                    printf("centerX centerY radius: ");
+                case CIRCLE:
+                    printf("New centerX centerY radius: ");
                     scanf("%d%d%d",
-                          &objects[i].x1,
-                          &objects[i].y1,
-                          &objects[i].radius);
+                          &shapes[i].x1,
+                          &shapes[i].y1,
+                          &shapes[i].radius);
                     break;
             }
 
-            redraw();
-
-            printf("Object Modified Successfully.\n");
+            printf("Shape Updated.\n");
             return;
         }
     }
 
-    printf("Object Not Found.\n");
+    printf("Shape Not Found.\n");
 }
 
-
-
-void listObjects()
-{
-    int i;
-
-    printf("\nCurrent Objects:\n");
-
-    for(i = 0; i < objectCount; i++)
-    {
-        printf("ID = %d  Type = ",
-               objects[i].id);
-
-        switch(objects[i].type)
-        {
-            case 1:
-                printf("Line");
-                break;
-            case 2:
-                printf("Rectangle");
-                break;
-            case 3:
-                printf("Triangle");
-                break;
-            case 4:
-                printf("Circle");
-                break;
-        }
-
-        printf("\n");
-    }
-
-    if(objectCount == 0)
-        printf("No Objects Present.\n");
-}
-
-
+/* ---------------- Main ---------------- */
 
 int main()
 {
     int choice;
 
-    initCanvas();
+    clearCanvas();
 
     while(1)
     {
-        printf("\n=================================\n");
-        printf("      2D GRAPHICS EDITOR\n");
-        printf("=================================\n");
-        printf("1. Add Object\n");
-        printf("2. Delete Object\n");
-        printf("3. Modify Object\n");
-        printf("4. Display Picture\n");
-        printf("5. List Objects\n");
-        printf("6. Exit\n");
+        renderScene();
+
+        printf("\n====== 2D GRAPHICS EDITOR ======\n");
+        printf("1. Add Line\n");
+        printf("2. Add Rectangle\n");
+        printf("3. Add Triangle\n");
+        printf("4. Add Circle\n");
+        printf("5. Delete Shape\n");
+        printf("6. Modify Shape\n");
+        printf("7. List Shapes\n");
+        printf("8. Display Canvas\n");
+        printf("9. Exit\n");
 
         printf("Enter Choice: ");
-        scanf("%d", &choice);
+        scanf("%d",&choice);
 
         switch(choice)
         {
             case 1:
-                addObject();
+                addLine();
                 break;
 
             case 2:
-                deleteObject();
+                addRectangle();
                 break;
 
             case 3:
-                modifyObject();
+                addTriangle();
                 break;
 
             case 4:
-                displayCanvas();
+                addCircle();
                 break;
 
             case 5:
-                listObjects();
+                deleteShape();
                 break;
 
             case 6:
-                printf("Exiting...\n");
-                exit(0);
+                modifyShape();
+                break;
+
+            case 7:
+                listShapes();
+                break;
+
+            case 8:
+                renderScene();
+                displayCanvas();
+                break;
+
+            case 9:
+                printf("Thank You!\n");
+                return 0;
 
             default:
                 printf("Invalid Choice!\n");
